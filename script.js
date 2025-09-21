@@ -2,6 +2,7 @@ class MagicCalculator {
     constructor() {
         this.displayElement = document.getElementById('result');
         this.historyElement = document.getElementById('history');
+        this.displayArea = document.querySelector('.display');
         this.buttons = document.querySelectorAll('.btn');
         this.clearButton = document.getElementById('clear-btn');
         this.currentInput = '0';
@@ -15,9 +16,14 @@ class MagicCalculator {
         this.magicStep = 0;
         this.secretPresses = 0;
         this.calculationComplete = false;
+        this.doubleTapCount = 0;
+        this.magicReady = false;
+        this.magicNumber = 0;
+        this.isScreenDown = false;
 
         this.initEventListeners();
         this.initOrientationDetection();
+        this.initDisplayTapDetection();
         this.updateDisplay();
     }
 
@@ -44,16 +50,46 @@ class MagicCalculator {
         });
     }
 
+    initDisplayTapDetection() {
+        let tapCount = 0;
+        let tapTimer = null;
+
+        this.displayArea.addEventListener('click', () => {
+            tapCount++;
+
+            if (tapTimer) {
+                clearTimeout(tapTimer);
+            }
+
+            tapTimer = setTimeout(() => {
+                if (tapCount >= 2) {
+                    this.doubleTapCount = tapCount;
+                    this.magicReady = true;
+                    console.log('Magic mode activated - ready for screen flip');
+                }
+                tapCount = 0;
+            }, 300);
+        });
+    }
+
     handleOrientationChange(event) {
         const { beta } = event;
 
-        if (beta > 150 || beta < -150) {
+        // Check if screen is face down (beta around 180 degrees)
+        const isScreenDown = beta > 150 || beta < -150;
+
+        if (isScreenDown && !this.isScreenDown && this.magicReady) {
+            this.isScreenDown = true;
             this.triggerMagicTrick();
+        } else if (!isScreenDown && this.isScreenDown) {
+            this.isScreenDown = false;
+            this.unlockButtons();
         }
     }
 
     checkForScreenFlip() {
-        if (window.orientation === 180 || window.orientation === -180) {
+        // Alternative method for orientation change
+        if (this.magicReady && !this.buttonsLocked) {
             this.triggerMagicTrick();
         }
     }
@@ -219,24 +255,33 @@ class MagicCalculator {
     }
 
     triggerMagicTrick() {
-        if (!this.magicMode || this.buttonsLocked || !this.calculationComplete) return;
+        if (!this.magicReady || this.buttonsLocked) return;
 
         this.buttonsLocked = true;
         this.buttons.forEach(button => {
             button.classList.add('disabled');
         });
 
+        // Calculate magic number from current date/time
         const now = new Date();
         const month = now.getMonth() + 1;
         const date = now.getDate();
         const hour = now.getHours();
         const minute = now.getMinutes() + 1;
 
-        const magicNumber = parseInt(`${month}${date.toString().padStart(2, '0')}${hour.toString().padStart(2, '0')}${minute.toString().padStart(2, '0')}`);
+        this.magicNumber = parseInt(`${month}${date.toString().padStart(2, '0')}${hour.toString().padStart(2, '0')}${minute.toString().padStart(2, '0')}`);
 
-        const result = magicNumber - (this.firstNumber + this.secondNumber);
+        // Get current calculation result
+        const currentResult = parseFloat(this.currentInput);
 
-        this.animateToResult(result);
+        // Calculate: date/time - current result
+        const finalResult = this.magicNumber - currentResult;
+
+        // Set the magic calculation in the display
+        this.currentInput = this.formatResult(finalResult);
+        this.updateDisplay();
+
+        console.log(`Magic: ${this.magicNumber} - ${currentResult} = ${finalResult}`);
     }
 
     animateToResult(finalResult) {
@@ -281,6 +326,10 @@ class MagicCalculator {
             this.firstNumber = 0;
             this.secondNumber = 0;
             this.calculationComplete = false;
+            this.magicReady = false;
+            this.doubleTapCount = 0;
+            this.magicNumber = 0;
+            this.isScreenDown = false;
 
             this.buttons.forEach(button => {
                 button.classList.remove('disabled');
@@ -292,6 +341,16 @@ class MagicCalculator {
         // Clear history on AC
         this.historyElement.textContent = '';
         this.updateClearButton();
+    }
+
+    unlockButtons() {
+        if (this.buttonsLocked) {
+            this.buttonsLocked = false;
+            this.buttons.forEach(button => {
+                button.classList.remove('disabled');
+            });
+            console.log('Buttons unlocked - ready for equals calculation');
+        }
     }
 
     updateClearButton() {

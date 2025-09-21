@@ -1,10 +1,10 @@
 const CACHE_NAME = 'magic-calculator-v1';
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/style.css',
-    '/script.js',
-    '/manifest.json'
+    '/vadsrgd/',
+    '/vadsrgd/index.html',
+    '/vadsrgd/style.css',
+    '/vadsrgd/script.js',
+    '/vadsrgd/manifest.json'
 ];
 
 self.addEventListener('install', event => {
