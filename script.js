@@ -20,6 +20,8 @@ class MagicCalculator {
         this.magicReady = false;
         this.magicNumber = 0;
         this.isScreenDown = false;
+        this.firstSafetyActive = false;
+        this.secondSafetyActive = false;
 
         this.initEventListeners();
         this.initOrientationDetection();
@@ -54,21 +56,49 @@ class MagicCalculator {
         let tapCount = 0;
         let tapTimer = null;
 
-        this.displayArea.addEventListener('click', () => {
+        console.log('Display tap detection initialized');
+
+        this.displayArea.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             tapCount++;
+            console.log(`Tap ${tapCount} detected`);
 
             if (tapTimer) {
                 clearTimeout(tapTimer);
             }
 
             tapTimer = setTimeout(() => {
+                console.log(`Timer expired with ${tapCount} taps`);
                 if (tapCount >= 2) {
                     this.doubleTapCount = tapCount;
-                    this.magicReady = true;
-                    console.log('Magic mode activated - ready for screen flip');
+                    console.log(`Double tap detected: ${tapCount} taps - activating first safety`);
+                    this.activateFirstSafety();
                 }
                 tapCount = 0;
-            }, 300);
+            }, 500);
+        });
+
+        // Also try with touchend for mobile
+        this.displayArea.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            tapCount++;
+            console.log(`Touch ${tapCount} detected`);
+
+            if (tapTimer) {
+                clearTimeout(tapTimer);
+            }
+
+            tapTimer = setTimeout(() => {
+                console.log(`Touch timer expired with ${tapCount} taps`);
+                if (tapCount >= 2) {
+                    this.doubleTapCount = tapCount;
+                    console.log(`Double touch detected: ${tapCount} taps - activating first safety`);
+                    this.activateFirstSafety();
+                }
+                tapCount = 0;
+            }, 500);
         });
     }
 
@@ -78,19 +108,18 @@ class MagicCalculator {
         // Check if screen is face down (beta around 180 degrees)
         const isScreenDown = beta > 150 || beta < -150;
 
-        if (isScreenDown && !this.isScreenDown && this.magicReady) {
+        if (isScreenDown && !this.isScreenDown && this.firstSafetyActive) {
             this.isScreenDown = true;
-            this.triggerMagicTrick();
+            this.activateSecondSafety();
         } else if (!isScreenDown && this.isScreenDown) {
             this.isScreenDown = false;
-            this.unlockButtons();
         }
     }
 
     checkForScreenFlip() {
         // Alternative method for orientation change
-        if (this.magicReady && !this.buttonsLocked) {
-            this.triggerMagicTrick();
+        if (this.firstSafetyActive && !this.secondSafetyActive) {
+            this.activateSecondSafety();
         }
     }
 
@@ -254,13 +283,43 @@ class MagicCalculator {
         });
     }
 
-    triggerMagicTrick() {
-        if (!this.magicReady || this.buttonsLocked) return;
+    activateFirstSafety() {
+        console.log('First safety activated - calculator button flash');
+        this.firstSafetyActive = true;
 
-        this.buttonsLocked = true;
-        this.buttons.forEach(button => {
-            button.classList.add('disabled');
-        });
+        // Flash calculator button
+        const calcButton = document.querySelector('[data-action="calculator"]');
+        if (calcButton) {
+            calcButton.style.backgroundColor = 'white';
+            calcButton.style.color = '#333333';
+
+            setTimeout(() => {
+                calcButton.style.backgroundColor = '';
+                calcButton.style.color = '';
+                console.log('Calculator button flash completed');
+            }, 500);
+        }
+
+        console.log('First safety active - waiting for phone flip');
+    }
+
+    activateSecondSafety() {
+        console.log('Second safety activated - phone flip detected');
+        this.secondSafetyActive = true;
+        this.checkBothSafeties();
+    }
+
+    checkBothSafeties() {
+        if (this.firstSafetyActive && this.secondSafetyActive) {
+            console.log('Both safeties activated - triggering magic!');
+            this.triggerMagicTrick();
+        }
+    }
+
+    triggerMagicTrick() {
+        if (this.buttonsLocked) return;
+
+        console.log('Magic trick triggered!');
 
         // Calculate magic number from current date/time
         const now = new Date();
@@ -281,7 +340,11 @@ class MagicCalculator {
         this.currentInput = this.formatResult(finalResult);
         this.updateDisplay();
 
-        console.log(`Magic: ${this.magicNumber} - ${currentResult} = ${finalResult}`);
+        console.log(`Magic calculation: ${this.magicNumber} - ${currentResult} = ${finalResult}`);
+
+        // Reset safeties
+        this.firstSafetyActive = false;
+        this.secondSafetyActive = false;
     }
 
     animateToResult(finalResult) {
@@ -330,6 +393,8 @@ class MagicCalculator {
             this.doubleTapCount = 0;
             this.magicNumber = 0;
             this.isScreenDown = false;
+            this.firstSafetyActive = false;
+            this.secondSafetyActive = false;
 
             this.buttons.forEach(button => {
                 button.classList.remove('disabled');

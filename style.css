@@ -36,6 +36,11 @@ body {
     align-items: flex-end;
     padding: 40px 30px;
     background: black;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 #history {
