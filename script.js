@@ -22,11 +22,13 @@ class MagicCalculator {
         this.isScreenDown = false;
         this.firstSafetyActive = false;
         this.secondSafetyActive = false;
+        this.needsPermission = false;
 
         this.initEventListeners();
         this.initOrientationDetection();
         this.initDisplayTapDetection();
         this.updateDisplay();
+        this.checkInitialPermissions();
     }
 
     initEventListeners() {
@@ -40,9 +42,14 @@ class MagicCalculator {
 
     initOrientationDetection() {
         if (window.DeviceOrientationEvent) {
-            window.addEventListener('deviceorientation', (e) => {
-                this.handleOrientationChange(e);
-            });
+            // Check if we need permission (iOS 13+)
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                console.log('iOS device detected - will request permission on page load');
+                this.needsPermission = true;
+            } else {
+                // Non-iOS or older iOS
+                this.startOrientationListening();
+            }
         }
 
         window.addEventListener('orientationchange', () => {
@@ -50,6 +57,51 @@ class MagicCalculator {
                 this.checkForScreenFlip();
             }, 500);
         });
+    }
+
+    async checkInitialPermissions() {
+        if (this.needsPermission) {
+            // Show a message to user about permission requirement
+            const userConfirm = confirm('此魔術計算機需要存取設備方向權限才能正常運作。是否現在授予權限？');
+
+            if (userConfirm) {
+                const granted = await this.requestOrientationPermission();
+                if (granted) {
+                    console.log('初始權限檢查完成 - 權限已授予');
+                } else {
+                    alert('權限被拒絕，魔術功能將無法使用');
+                }
+            } else {
+                alert('未授予權限，魔術功能將無法使用');
+            }
+        }
+    }
+
+    async requestOrientationPermission() {
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            try {
+                const permission = await DeviceOrientationEvent.requestPermission();
+                if (permission === 'granted') {
+                    console.log('Orientation permission granted');
+                    this.startOrientationListening();
+                    return true;
+                } else {
+                    console.log('Orientation permission denied');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error requesting orientation permission:', error);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    startOrientationListening() {
+        window.addEventListener('deviceorientation', (e) => {
+            this.handleOrientationChange(e);
+        });
+        console.log('Device orientation listening started');
     }
 
     initDisplayTapDetection() {
@@ -423,6 +475,7 @@ class MagicCalculator {
             this.isScreenDown = false;
             this.firstSafetyActive = false;
             this.secondSafetyActive = false;
+            this.needsPermission = false;
 
             this.buttons.forEach(button => {
                 button.classList.remove('disabled');
