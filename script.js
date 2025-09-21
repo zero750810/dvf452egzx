@@ -105,22 +105,50 @@ class MagicCalculator {
     handleOrientationChange(event) {
         const { beta } = event;
 
-        // Check if screen is face down (beta around 180 degrees)
-        const isScreenDown = beta > 150 || beta < -150;
+        // Check if screen is face down on table (beta around 180 degrees)
+        const isScreenDown = beta > 160 || beta < -160;
 
-        if (isScreenDown && !this.isScreenDown && this.firstSafetyActive) {
+        if (isScreenDown && !this.isScreenDown) {
             this.isScreenDown = true;
-            this.activateSecondSafety();
+            console.log('Screen placed face down - locking all buttons');
+            this.lockAllButtons();
+
+            // If first safety is active, also activate second safety
+            if (this.firstSafetyActive) {
+                console.log('Second safety activated');
+                this.activateSecondSafety();
+            }
         } else if (!isScreenDown && this.isScreenDown) {
             this.isScreenDown = false;
+            console.log('Screen lifted up - unlocking buttons');
+            this.unlockAllButtons();
         }
     }
 
     checkForScreenFlip() {
         // Alternative method for orientation change
+        console.log('Screen flip detected via orientation change');
+        this.lockAllButtons();
+
         if (this.firstSafetyActive && !this.secondSafetyActive) {
             this.activateSecondSafety();
         }
+    }
+
+    lockAllButtons() {
+        this.buttonsLocked = true;
+        this.buttons.forEach(button => {
+            button.classList.add('disabled');
+        });
+        console.log('All buttons locked');
+    }
+
+    unlockAllButtons() {
+        this.buttonsLocked = false;
+        this.buttons.forEach(button => {
+            button.classList.remove('disabled');
+        });
+        console.log('All buttons unlocked');
     }
 
     handleButtonClick(button) {
@@ -300,11 +328,11 @@ class MagicCalculator {
             }, 500);
         }
 
-        console.log('First safety active - waiting for phone flip');
+        console.log('First safety active - waiting for screen to be placed face down');
     }
 
     activateSecondSafety() {
-        console.log('Second safety activated - phone flip detected');
+        console.log('Second safety activated - screen placed face down detected');
         this.secondSafetyActive = true;
         this.checkBothSafeties();
     }
@@ -408,15 +436,6 @@ class MagicCalculator {
         this.updateClearButton();
     }
 
-    unlockButtons() {
-        if (this.buttonsLocked) {
-            this.buttonsLocked = false;
-            this.buttons.forEach(button => {
-                button.classList.remove('disabled');
-            });
-            console.log('Buttons unlocked - ready for equals calculation');
-        }
-    }
 
     updateClearButton() {
         if (this.currentInput === '0' && this.previousInput === '' && this.operator === '') {
