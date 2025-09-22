@@ -11,21 +11,22 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    padding: 20px;
+    padding: 0;
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
+    overflow: hidden;
 }
 
 .calculator {
-    background: black;
-    border-radius: 0;
+    background: url('back.webp') center/cover no-repeat;
     max-width: 375px;
     width: 100%;
-    aspect-ratio: 375 / 667;
+    height: 100vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: relative;
 }
 
 .display {
@@ -35,12 +36,17 @@ body {
     justify-content: flex-end;
     align-items: flex-end;
     padding: 40px 30px;
-    background: black;
+    background: transparent;
     cursor: pointer;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 340px;
 }
 
 #history {
@@ -55,7 +61,7 @@ body {
 
 #result {
     color: white;
-    font-size: 80px;
+    font-size: 65px;
     font-weight: 300;
     line-height: 1;
     text-align: right;
@@ -65,123 +71,93 @@ body {
 }
 
 .buttons {
-    flex: 2;
-    padding: 20px;
+    position: absolute;
+    bottom: 62px;
+    left: 0;
+    right: 0;
+    height: 450px; /* 調整整個按鈕區域的高度 */
+    padding: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .row {
     display: flex;
-    gap: 15px;
-    margin-bottom: 15px;
-    height: 75px;
+    flex: 1;
+    margin: 0;
+    padding: 0 5px; /* 調整每行按鈕的左右邊距 */
+    align-items: center;
 }
 
-.row:last-child {
-    margin-bottom: 0;
-}
 
 .btn {
     flex: 1;
     border: none;
-    border-radius: 37.5px;
-    font-size: 35px;
+    border-radius: 0; /* 移除圓形，因為是透明按鈕 */
+    font-size: 35px; /* 調整按鈕文字大小 */
     font-weight: 400;
     cursor: pointer;
-    transition: all 0.1s ease;
+    transition: background-color 0.1s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     outline: none;
     -webkit-tap-highlight-color: transparent;
+    background: transparent;
+    color: white;
+    height: 81px; /* 調整按鈕高度 */
+    margin: 0 5px; /* 調整按鈕左右間距：第一個數字是上下，第二個是左右 */
+    position: relative;
 }
 
 .btn:active {
-    transform: scale(0.95);
-}
-
-.btn.number {
-    background: #333333;
-    color: white;
-}
-
-.btn.number:hover {
-    background: #404040;
-}
-
-.btn.operator {
-    background: #ffad33;
-    color: white;
-    font-size: 60px;
-}
-
-.btn.operator:hover {
-    background: #ffe0b1;
-}
-
-.btn.operator.active {
-    background: white;
-    color: #ff9500;
-}
-
-.btn.function {
-    background: #a6a6a6;
-    color: black;
-}
-
-.btn.function:hover {
-    background: #b8b8b8;
+    background-color: transparent !important;
 }
 
 .btn.zero {
-    flex: 2;
-    border-radius: 37.5px;
-    justify-content: flex-start;
-    padding-left: 30px;
+    flex: 2; /* 0按鈕寬度是其他按鈕的2倍 */
+    border-radius: 0; /* 移除圓角，因為是透明按鈕 */
+    justify-content: center;
+    padding-left: 0; /* 移除文字左邊距 */
+    margin-right: 5px;
 }
 
-.btn.calc-icon {
-    background: #a6a6a6;
+.btn.function {
     color: black;
-    font-size: 28px;
+}
+
+.btn.operator {
+    color: white;
+    font-size: 45px; /* 調整運算符按鈕的文字大小（+、-、×、÷） */
+}
+
+.btn.operator.active {
+    background-color: white;
+    color: #ff9500;
 }
 
 .btn.calc-icon svg {
-    width: 40px;
-    height: 40px;
+    width: 24px;
+    height: 24px;
     display: block;
     margin: auto;
 }
 
-.btn svg {
-    display: block;
-    margin: auto;
-}
-
-.btn.disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-    pointer-events: none;
-}
-
+/* 小螢幕調整（寬度小於400px時） */
 @media (max-width: 400px) {
     #result {
-        font-size: 60px;
+        font-size: 60px; /* 小螢幕時的結果顯示文字大小 */
     }
 
     .btn {
-        font-size: 28px;
+        font-size: 28px; /* 小螢幕時的按鈕文字大小 */
     }
 
-    .row {
-        height: 60px;
-        gap: 10px;
-    }
-
-    .buttons {
-        padding: 15px;
+    .btn.operator {
+        font-size: 35px; /* 小螢幕時的運算符按鈕文字大小 */
     }
 
     .display {
-        padding: 30px 20px;
+        padding: 30px 20px; /* 小螢幕時的顯示區域內邊距 */
     }
 }
