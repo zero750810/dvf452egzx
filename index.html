@@ -2,7 +2,22 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, orientation=portrait">
+    <meta name="screen-orientation" content="portrait">
+    <meta name="x5-orientation" content="portrait">
+    <style>
+        @media screen and (orientation: landscape) {
+            html {
+                transform: rotate(-90deg);
+                transform-origin: left top;
+                width: 100vh;
+                overflow-x: hidden;
+                position: absolute;
+                top: 100%;
+                left: 0;
+            }
+        }
+    </style>
     <title>Magic Calculator</title>
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,62 +33,40 @@
         </div>
         <div class="buttons">
             <div class="row">
-                <button class="btn function" id="clear-btn" data-action="clear">AC</button>
-                <button class="btn function" data-action="plus-minus">
-                    <svg width="35" height="35" viewBox="0 0 24 24" fill="currentColor">
-                        <g stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                            <line x1="4" y1="10" x2="10" y2="10"/>
-                            <line x1="7" y1="7" x2="7" y2="13"/>
-                            <line x1="15" y1="19" x2="21" y2="19"/>
-                            <line x1="18" y1="5" x2="8" y2="23" stroke-width="1.5"/>
-                        </g>
-                    </svg>
+                <button class="btn function" id="clear-btn" data-action="clear"></button>
+                <button class="btn function" data-action="plus-minus"></button>
+                <button class="btn function" data-action="percent"></button>
+                <button class="btn number" data-action="divide"></button>
+            </div>
+            <div class="row">
+                <button class="btn number" data-number="7"></button>
+                <button class="btn number" data-number="8"></button>
+                <button class="btn number" data-number="9"></button>
+                <button class="btn number" data-action="multiply"></button>
+            </div>
+            <div class="row">
+                <button class="btn number" data-number="4"></button>
+                <button class="btn number" data-number="5"></button>
+                <button class="btn number" data-number="6"></button>
+                <button class="btn number" data-action="subtract"></button>
+            </div>
+            <div class="row">
+                <button class="btn number" data-number="1"></button>
+                <button class="btn number" data-number="2"></button>
+                <button class="btn number" data-number="3"></button>
+                <button class="btn number" data-action="add"></button>
+            </div>
+            <div class="row">
+                <button class="btn number" data-action="calculator">                 
                 </button>
-                <button class="btn function" data-action="percent">%</button>
-                <button class="btn operator" data-action="divide">÷</button>
+                <button class="btn number" data-number="0"></button>
+                <button class="btn number" data-action="decimal"></button>
+                <button class="btn number equals" data-action="equals"></button>
             </div>
-            <div class="row">
-                <button class="btn number" data-number="7">7</button>
-                <button class="btn number" data-number="8">8</button>
-                <button class="btn number" data-number="9">9</button>
-                <button class="btn operator" data-action="multiply">×</button>
-            </div>
-            <div class="row">
-                <button class="btn number" data-number="4">4</button>
-                <button class="btn number" data-number="5">5</button>
-                <button class="btn number" data-number="6">6</button>
-                <button class="btn operator" data-action="subtract">−</button>
-            </div>
-            <div class="row">
-                <button class="btn number" data-number="1">1</button>
-                <button class="btn number" data-number="2">2</button>
-                <button class="btn number" data-number="3">3</button>
-                <button class="btn operator" data-action="add">+</button>
-            </div>
-            <div class="row">
-                <button class="btn number" data-action="calculator">
-                    <svg width="40" height="40" viewBox="0 0 20 20" fill="currentColor">
-                        <rect x="3" y="2" width="13" height="18" rx="2" fill="white" stroke="none"/>
-                        <rect x="5" y="4" width="9" height="4" rx="1" fill="#333333"/>
-                        <circle cx="6.5" cy="10.5" r="1" fill="#333333"/>
-                        <circle cx="9.5" cy="10.5" r="1" fill="#333333"/>
-                        <circle cx="12.5" cy="10.5" r="1" fill="#333333"/>
-                        <circle cx="6.5" cy="13.5" r="1" fill="#333333"/>
-                        <circle cx="9.5" cy="13.5" r="1" fill="#333333"/>
-                        <circle cx="12.5" cy="13.5" r="1" fill="#333333"/>
-                        <circle cx="6.5" cy="16.5" r="1" fill="#333333"/>
-                        <circle cx="9.5" cy="16.5" r="1" fill="#333333"/>
-                        <circle cx="12.5" cy="16.5" r="1" fill="#333333"/>
-                    </svg>
-                </button>
-                <button class="btn number" data-number="0">0</button>
-                <button class="btn number" data-action="decimal">.</button>
-                <button class="btn operator equals" data-action="equals">=</button>
-            </div>
+         
         </div>
-    </div>
-    <div id="debug-info" style="position: fixed; bottom: 10px; left: 10px; color: #666; font-size: 12px; font-family: monospace;">
-        Z軸: -- | Beta: -- | 狀態: 等待中
+        <div class="row1">            
+        </div>
     </div>
     <script src="script.js"></script>
 </body>

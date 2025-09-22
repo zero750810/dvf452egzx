@@ -9,27 +9,16 @@ class MagicCalculator {
         this.previousInput = '';
         this.operator = '';
         this.shouldResetDisplay = false;
-        this.magicMode = false;
         this.buttonsLocked = false;
-        this.firstNumber = 0;
-        this.secondNumber = 0;
-        this.magicStep = 0;
-        this.secretPresses = 0;
-        this.calculationComplete = false;
-        this.doubleTapCount = 0;
-        this.magicReady = false;
-        this.magicNumber = 0;
-        this.isScreenDown = false;
-        this.firstSafetyActive = false;
-        this.secondSafetyActive = false;
-        this.needsPermission = false;
-        this.debugElement = document.getElementById('debug-info');
+
+        // Long press variables
+        this.isLongPressing = false;
+        this.longPressTimer = null;
+        this.magicCalculated = false;
 
         this.initEventListeners();
-        this.initOrientationDetection();
-        this.initDisplayTapDetection();
+        this.initDisplayLongPress();
         this.updateDisplay();
-        this.checkInitialPermissions();
     }
 
     initEventListeners() {
@@ -39,268 +28,117 @@ class MagicCalculator {
                 this.handleButtonClick(e.target);
             });
         });
+
     }
 
-    initOrientationDetection() {
-        // Start listening immediately without permission check
-        this.startAllOrientationListening();
+    initDisplayLongPress() {
+        console.log('Display long press detection initialized');
 
-        window.addEventListener('orientationchange', () => {
-            setTimeout(() => {
-                this.checkForScreenFlip();
-            }, 500);
-        });
-    }
-
-    startAllOrientationListening() {
-        console.log('Starting all orientation detection methods');
-
-        // DeviceOrientation
-        if (window.DeviceOrientationEvent) {
-            window.addEventListener('deviceorientation', (e) => {
-                this.handleOrientationChange(e);
-            });
-            console.log('DeviceOrientation listener added');
-        }
-
-        // DeviceMotion for Z-axis
-        if (window.DeviceMotionEvent) {
-            window.addEventListener('devicemotion', (e) => {
-                this.handleMotionChange(e);
-            });
-            console.log('DeviceMotion listener added');
-        }
-
-        this.updateDebugInfo('已啟動檢測');
-    }
-
-    async checkInitialPermissions() {
-        console.log('已直接啟動所有檢測方法，無需權限確認');
-        this.updateDebugInfo('初始化完成');
-    }
-
-    async requestOrientationPermission() {
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-            try {
-                console.log('Requesting DeviceOrientationEvent permission...');
-                const permission = await DeviceOrientationEvent.requestPermission();
-                console.log('Permission result:', permission);
-
-                if (permission === 'granted') {
-                    console.log('Orientation permission granted');
-                    this.startOrientationListening();
-                    return true;
-                } else {
-                    console.log('Orientation permission denied, trying fallback methods');
-                    this.tryFallbackMethods();
-                    return false;
-                }
-            } catch (error) {
-                console.error('Error requesting orientation permission:', error);
-                console.log('Permission request failed, trying fallback methods');
-                this.tryFallbackMethods();
-                return false;
-            }
-        }
-        return true;
-    }
-
-    tryFallbackMethods() {
-        console.log('Trying fallback orientation detection methods');
-
-        // Try legacy deviceorientation without permission
-        this.startOrientationListening();
-
-        // Add alternative method using window.orientation
-        window.addEventListener('orientationchange', () => {
-            console.log('Orientation change detected via orientationchange event');
-            setTimeout(() => {
-                this.handleOrientationFallback();
-            }, 100);
-        });
-
-        // Try motion detection as backup
-        if (window.DeviceMotionEvent) {
-            window.addEventListener('devicemotion', (e) => {
-                this.handleMotionEvent(e);
-            });
-        }
-    }
-
-    handleOrientationFallback() {
-        // Simple fallback - assume screen is down when orientation changes
-        if (this.firstSafetyActive && !this.secondSafetyActive) {
-            console.log('Fallback: Assuming screen flip for second safety');
-            this.activateSecondSafety();
-        }
-    }
-
-    handleMotionEvent(event) {
-        const { acceleration } = event;
-        if (acceleration && acceleration.z) {
-            // Rough detection of face-down position
-            if (acceleration.z < -8 && this.firstSafetyActive && !this.secondSafetyActive) {
-                console.log('Motion-based face-down detection');
-                this.activateSecondSafety();
-            }
-        }
-    }
-
-    startOrientationListening() {
-        window.addEventListener('deviceorientation', (e) => {
-            this.handleOrientationChange(e);
-        });
-        console.log('Device orientation listening started');
-    }
-
-    initDisplayTapDetection() {
-        let tapCount = 0;
-        let tapTimer = null;
-
-        console.log('Display tap detection initialized');
-
-        this.displayArea.addEventListener('click', (e) => {
+        // Mouse events
+        this.displayArea.addEventListener('mousedown', (e) => {
             e.preventDefault();
-            e.stopPropagation();
-            tapCount++;
-            console.log(`Tap ${tapCount} detected`);
-
-            if (tapTimer) {
-                clearTimeout(tapTimer);
-            }
-
-            tapTimer = setTimeout(() => {
-                console.log(`Timer expired with ${tapCount} taps`);
-                if (tapCount >= 2) {
-                    this.doubleTapCount = tapCount;
-                    console.log(`Double tap detected: ${tapCount} taps - activating first safety`);
-                    this.activateFirstSafety();
-                }
-                tapCount = 0;
-            }, 500);
+            this.startLongPress();
         });
 
-        // Also try with touchend for mobile
+        this.displayArea.addEventListener('mouseup', (e) => {
+            e.preventDefault();
+            this.endLongPress();
+        });
+
+        this.displayArea.addEventListener('mouseleave', (e) => {
+            this.endLongPress();
+        });
+
+        // Touch events for mobile
+        this.displayArea.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.startLongPress();
+        });
+
         this.displayArea.addEventListener('touchend', (e) => {
             e.preventDefault();
-            e.stopPropagation();
-            tapCount++;
-            console.log(`Touch ${tapCount} detected`);
+            this.endLongPress();
+        });
 
-            if (tapTimer) {
-                clearTimeout(tapTimer);
-            }
-
-            tapTimer = setTimeout(() => {
-                console.log(`Touch timer expired with ${tapCount} taps`);
-                if (tapCount >= 2) {
-                    this.doubleTapCount = tapCount;
-                    console.log(`Double touch detected: ${tapCount} taps - activating first safety`);
-                    this.activateFirstSafety();
-                }
-                tapCount = 0;
-            }, 500);
+        this.displayArea.addEventListener('touchcancel', (e) => {
+            this.endLongPress();
         });
     }
 
-    handleOrientationChange(event) {
-        const { beta, gamma, alpha } = event;
+    startLongPress() {
+        if (this.isLongPressing) return;
 
-        this.updateDebugInfo('Orientation', { beta, gamma, alpha });
+        console.log('Long press started');
+        this.isLongPressing = true;
+        this.magicCalculated = false;
 
-        // Check if screen is face down on table (beta around 180 degrees)
-        const isScreenDown = Math.abs(beta) > 150;
-
-        if (isScreenDown && !this.isScreenDown) {
-            this.isScreenDown = true;
-            console.log('Screen placed face down via orientation - locking all buttons');
-            this.lockAllButtons();
-
-            // If first safety is active, also activate second safety
-            if (this.firstSafetyActive) {
-                console.log('Second safety activated via orientation');
-                this.activateSecondSafety();
-            }
-        } else if (!isScreenDown && this.isScreenDown) {
-            this.isScreenDown = false;
-            console.log('Screen lifted up via orientation - unlocking buttons');
-            this.unlockAllButtons();
-        }
-    }
-
-    handleMotionChange(event) {
-        const { acceleration, accelerationIncludingGravity } = event;
-
-        let zAccel = null;
-        if (accelerationIncludingGravity) {
-            zAccel = accelerationIncludingGravity.z;
-        } else if (acceleration) {
-            zAccel = acceleration.z;
-        }
-
-        this.updateDebugInfo('Motion', { zAccel });
-
-        // Check if screen is face down (z acceleration around 10 or -10)
-        if (zAccel !== null) {
-            const isScreenDown = Math.abs(zAccel) > 8;
-
-            if (isScreenDown && !this.isScreenDown) {
-                this.isScreenDown = true;
-                console.log('Screen placed face down via motion - locking all buttons');
-                this.lockAllButtons();
-
-                // If first safety is active, also activate second safety
-                if (this.firstSafetyActive) {
-                    console.log('Second safety activated via motion');
-                    this.activateSecondSafety();
-                }
-            } else if (!isScreenDown && this.isScreenDown) {
-                this.isScreenDown = false;
-                console.log('Screen lifted up via motion - unlocking buttons');
-                this.unlockAllButtons();
-            }
-        }
-    }
-
-    updateDebugInfo(source, data = {}) {
-        if (this.debugElement) {
-            let status = this.firstSafetyActive ? '第一段已啟動' : '等待中';
-            if (this.secondSafetyActive) status = '兩段已啟動';
-
-            if (source === 'Orientation' && data.beta !== undefined) {
-                this.debugElement.textContent = `Beta: ${data.beta?.toFixed(1) || '--'} | Gamma: ${data.gamma?.toFixed(1) || '--'} | 狀態: ${status}`;
-            } else if (source === 'Motion' && data.zAccel !== undefined) {
-                this.debugElement.textContent = `Z軸: ${data.zAccel?.toFixed(1) || '--'} | 狀態: ${status}`;
-            } else {
-                this.debugElement.textContent = `檢測: ${source} | 狀態: ${status}`;
-            }
-        }
-    }
-
-    checkForScreenFlip() {
-        // Alternative method for orientation change
-        console.log('Screen flip detected via orientation change');
+        // Lock all buttons immediately
         this.lockAllButtons();
 
-        if (this.firstSafetyActive && !this.secondSafetyActive) {
-            this.activateSecondSafety();
+        // Set timer for 5 seconds
+        this.longPressTimer = setTimeout(() => {
+            if (this.isLongPressing && !this.magicCalculated) {
+                console.log('5 seconds reached - triggering magic calculation');
+                this.triggerMagicCalculation();
+                this.magicCalculated = true;
+            }
+        }, 5000);
+    }
+
+    endLongPress() {
+        if (!this.isLongPressing) return;
+
+        console.log('Long press ended');
+        this.isLongPressing = false;
+
+        // Clear timer
+        if (this.longPressTimer) {
+            clearTimeout(this.longPressTimer);
+            this.longPressTimer = null;
         }
+
+        // Unlock all buttons
+        this.unlockAllButtons();
     }
 
     lockAllButtons() {
         this.buttonsLocked = true;
-        this.buttons.forEach(button => {
-            button.classList.add('disabled');
-        });
         console.log('All buttons locked');
     }
 
     unlockAllButtons() {
         this.buttonsLocked = false;
-        this.buttons.forEach(button => {
-            button.classList.remove('disabled');
-        });
         console.log('All buttons unlocked');
+    }
+
+    triggerMagicCalculation() {
+        console.log('Magic calculation triggered!');
+
+        // Calculate magic number from current date/time
+        const now = new Date();
+        const month = now.getMonth() + 1;
+        const date = now.getDate();
+        const hour = now.getHours();
+        const minute = now.getMinutes() + 1;
+
+        this.magicNumber = parseInt(`${month}${date.toString().padStart(2, '0')}${hour.toString().padStart(2, '0')}${minute.toString().padStart(2, '0')}`);
+
+        // Get current calculation result (remove commas first)
+        const currentResult = parseFloat(this.currentInput.replace(/,/g, ''));
+
+        // Calculate: date/time - current result
+        let finalResult = this.magicNumber - currentResult;
+
+        // If result is negative, make it positive
+        if (finalResult < 0) {
+            finalResult = Math.abs(finalResult);
+        }
+
+        // Set the magic calculation in the display
+        this.currentInput = this.formatResult(finalResult);
+        this.updateDisplay();
+
+        console.log(`Magic calculation: ${this.magicNumber} - ${currentResult} = ${finalResult}`);
     }
 
     handleButtonClick(button) {
@@ -330,12 +168,6 @@ class MagicCalculator {
         this.historyElement.textContent = '';
 
         this.updateClearButton();
-
-        if (this.magicStep === 1 && this.operator === '') {
-            this.firstNumber = parseFloat(this.currentInput);
-        } else if (this.magicStep === 2 && this.operator === 'add') {
-            this.secondNumber = parseFloat(this.currentInput);
-        }
     }
 
     handleAction(action) {
@@ -380,17 +212,18 @@ class MagicCalculator {
         this.operator = op;
         this.previousInput = this.currentInput;
         this.shouldResetDisplay = true;
-        this.calculationComplete = false;
 
-        // Clear history when setting operator
-        this.historyElement.textContent = '';
+        // Show current number + operator in history
+        const operatorSymbol = {
+            'add': '+',
+            'subtract': '−',
+            'multiply': '×',
+            'divide': '÷'
+        }[op] || '';
+
+        this.historyElement.textContent = `${this.addCommas(this.currentInput)}${operatorSymbol}`;
 
         this.updateOperatorButtons();
-
-        if (op === 'add' && this.magicStep === 0 && this.firstNumber === 0) {
-            this.magicStep = 1;
-            this.firstNumber = parseFloat(this.currentInput);
-        }
     }
 
     calculate() {
@@ -398,8 +231,9 @@ class MagicCalculator {
             return;
         }
 
-        const prev = parseFloat(this.previousInput);
-        const current = parseFloat(this.currentInput);
+        // Remove commas before parsing
+        const prev = parseFloat(this.previousInput.replace(/,/g, ''));
+        const current = parseFloat(this.currentInput.replace(/,/g, ''));
         let result;
 
         switch (this.operator) {
@@ -433,137 +267,12 @@ class MagicCalculator {
         this.previousInput = '';
         this.operator = '';
         this.shouldResetDisplay = true;
-        this.calculationComplete = true;
 
         this.updateOperatorButtons();
-
-        if (this.magicStep === 1) {
-            this.magicStep = 2;
-            this.secondNumber = current;
-            this.startSecretPressDetection();
-        }
-    }
-
-    startSecretPressDetection() {
-        const resultValue = parseFloat(this.currentInput);
-
-        this.buttons.forEach(button => {
-            const originalHandler = button.onclick;
-
-            button.addEventListener('click', () => {
-                if (button.textContent === this.formatResult(resultValue)) {
-                    this.secretPresses++;
-
-                    if (this.secretPresses >= 2) {
-                        this.magicMode = true;
-                        this.secretPresses = 0;
-                    }
-                }
-            });
-        });
-    }
-
-    activateFirstSafety() {
-        console.log('First safety activated - calculator button flash');
-        this.firstSafetyActive = true;
-
-        // Flash calculator button
-        const calcButton = document.querySelector('[data-action="calculator"]');
-        if (calcButton) {
-            calcButton.style.backgroundColor = 'white';
-            calcButton.style.color = '#333333';
-
-            setTimeout(() => {
-                calcButton.style.backgroundColor = '';
-                calcButton.style.color = '';
-                console.log('Calculator button flash completed');
-            }, 500);
-        }
-
-        console.log('First safety active - waiting for screen to be placed face down');
-    }
-
-    activateSecondSafety() {
-        console.log('Second safety activated - screen placed face down detected');
-        this.secondSafetyActive = true;
-
-        // Flash calculator button again for second safety
-        const calcButton = document.querySelector('[data-action="calculator"]');
-        if (calcButton) {
-            calcButton.style.backgroundColor = '#ff9500';
-            calcButton.style.color = 'white';
-
-            setTimeout(() => {
-                calcButton.style.backgroundColor = '';
-                calcButton.style.color = '';
-                console.log('Second safety button flash completed');
-            }, 500);
-        }
-
-        this.checkBothSafeties();
-    }
-
-    checkBothSafeties() {
-        if (this.firstSafetyActive && this.secondSafetyActive) {
-            console.log('Both safeties activated - triggering magic!');
-            this.triggerMagicTrick();
-        }
-    }
-
-    triggerMagicTrick() {
-        if (this.buttonsLocked) return;
-
-        console.log('Magic trick triggered!');
-
-        // Calculate magic number from current date/time
-        const now = new Date();
-        const month = now.getMonth() + 1;
-        const date = now.getDate();
-        const hour = now.getHours();
-        const minute = now.getMinutes() + 1;
-
-        this.magicNumber = parseInt(`${month}${date.toString().padStart(2, '0')}${hour.toString().padStart(2, '0')}${minute.toString().padStart(2, '0')}`);
-
-        // Get current calculation result
-        const currentResult = parseFloat(this.currentInput);
-
-        // Calculate: date/time - current result
-        const finalResult = this.magicNumber - currentResult;
-
-        // Set the magic calculation in the display
-        this.currentInput = this.formatResult(finalResult);
-        this.updateDisplay();
-
-        console.log(`Magic calculation: ${this.magicNumber} - ${currentResult} = ${finalResult}`);
-
-        // Reset safeties
-        this.firstSafetyActive = false;
-        this.secondSafetyActive = false;
-    }
-
-    animateToResult(finalResult) {
-        let currentDisplayValue = parseFloat(this.currentInput);
-        const step = (finalResult - currentDisplayValue) / 20;
-        let iterations = 0;
-
-        const animate = () => {
-            if (iterations < 20) {
-                currentDisplayValue += step;
-                this.currentInput = this.formatResult(currentDisplayValue);
-                this.updateDisplay();
-                iterations++;
-                setTimeout(animate, 100);
-            } else {
-                this.currentInput = this.formatResult(finalResult);
-                this.updateDisplay();
-            }
-        };
-
-        animate();
     }
 
     clear() {
-        if (this.clearButton.textContent === '⌫') {
+        if (this.clearButton.textContent === '') {
             // Delete last digit
             if (this.currentInput.length > 1) {
                 this.currentInput = this.currentInput.slice(0, -1);
@@ -576,24 +285,6 @@ class MagicCalculator {
             this.previousInput = '';
             this.operator = '';
             this.shouldResetDisplay = false;
-            this.magicMode = false;
-            this.buttonsLocked = false;
-            this.magicStep = 0;
-            this.secretPresses = 0;
-            this.firstNumber = 0;
-            this.secondNumber = 0;
-            this.calculationComplete = false;
-            this.magicReady = false;
-            this.doubleTapCount = 0;
-            this.magicNumber = 0;
-            this.isScreenDown = false;
-            this.firstSafetyActive = false;
-            this.secondSafetyActive = false;
-            this.needsPermission = false;
-
-            this.buttons.forEach(button => {
-                button.classList.remove('disabled');
-            });
 
             this.updateOperatorButtons();
         }
@@ -603,12 +294,11 @@ class MagicCalculator {
         this.updateClearButton();
     }
 
-
     updateClearButton() {
         if (this.currentInput === '0' && this.previousInput === '' && this.operator === '') {
-            this.clearButton.textContent = 'AC';
+            this.clearButton.textContent = '';
         } else {
-            this.clearButton.textContent = '⌫';
+            this.clearButton.textContent = '';
         }
     }
 
@@ -641,13 +331,30 @@ class MagicCalculator {
                 return parseFloat(num.toFixed(9 - str.indexOf('.'))).toString();
             }
         }
-        return str;
+
+        // Add comma formatting for large numbers
+        return this.addCommas(str);
+    }
+
+    addCommas(numStr) {
+        // Split into integer and decimal parts
+        const parts = numStr.split('.');
+        const integerPart = parts[0];
+        const decimalPart = parts[1];
+
+        // Add commas to integer part
+        const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+        // Combine back with decimal part if exists
+        return decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
     }
 
     updateDisplay() {
-        this.displayElement.textContent = this.currentInput;
+        // Format the current input with commas for display
+        const formattedInput = this.addCommas(this.currentInput);
+        this.displayElement.textContent = formattedInput;
 
-        const length = this.currentInput.length;
+        const length = formattedInput.length;
         if (length > 6) {
             this.displayElement.style.fontSize = '60px';
         } else if (length > 9) {
@@ -668,8 +375,10 @@ class MagicCalculator {
             }
         });
     }
+
 }
 
+// Service Worker registration
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js')
