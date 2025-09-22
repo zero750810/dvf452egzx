@@ -61,19 +61,25 @@ class MagicCalculator {
 
     async checkInitialPermissions() {
         if (this.needsPermission) {
-            // Show a message to user about permission requirement
-            const userConfirm = confirm('此魔術計算機需要存取設備方向權限才能正常運作。是否現在授予權限？');
+            console.log('檢測到iOS設備，需要權限');
 
-            if (userConfirm) {
-                const granted = await this.requestOrientationPermission();
-                if (granted) {
-                    console.log('初始權限檢查完成 - 權限已授予');
+            // Add delay to ensure page is fully loaded
+            setTimeout(async () => {
+                const userConfirm = confirm('此魔術計算機需要存取設備方向權限才能正常運作。是否現在授予權限？');
+
+                if (userConfirm) {
+                    const granted = await this.requestOrientationPermission();
+                    if (granted) {
+                        console.log('初始權限檢查完成 - 權限已授予');
+                    } else {
+                        alert('權限被拒絕，魔術功能將無法使用');
+                    }
                 } else {
-                    alert('權限被拒絕，魔術功能將無法使用');
+                    alert('未授予權限，魔術功能將無法使用');
                 }
-            } else {
-                alert('未授予權限，魔術功能將無法使用');
-            }
+            }, 1000);
+        } else {
+            console.log('不需要額外權限或非iOS設備');
         }
     }
 
@@ -155,7 +161,8 @@ class MagicCalculator {
     }
 
     handleOrientationChange(event) {
-        const { beta } = event;
+        const { beta, gamma, alpha } = event;
+        console.log(`Orientation: beta=${beta}, gamma=${gamma}, alpha=${alpha}`);
 
         // Check if screen is face down on table (beta around 180 degrees)
         const isScreenDown = beta > 160 || beta < -160;
@@ -386,6 +393,20 @@ class MagicCalculator {
     activateSecondSafety() {
         console.log('Second safety activated - screen placed face down detected');
         this.secondSafetyActive = true;
+
+        // Flash calculator button again for second safety
+        const calcButton = document.querySelector('[data-action="calculator"]');
+        if (calcButton) {
+            calcButton.style.backgroundColor = '#ff9500';
+            calcButton.style.color = 'white';
+
+            setTimeout(() => {
+                calcButton.style.backgroundColor = '';
+                calcButton.style.color = '';
+                console.log('Second safety button flash completed');
+            }, 500);
+        }
+
         this.checkBothSafeties();
     }
 
