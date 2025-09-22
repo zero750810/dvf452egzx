@@ -72,10 +72,13 @@ class MagicCalculator {
                     if (granted) {
                         console.log('初始權限檢查完成 - 權限已授予');
                     } else {
-                        alert('權限被拒絕，魔術功能將無法使用');
+                        console.log('嘗試使用替代方法進行方向檢測');
+                        alert('將使用替代方法檢測設備方向，魔術功能可能受限但仍可使用');
                     }
                 } else {
-                    alert('未授予權限，魔術功能將無法使用');
+                    console.log('用戶拒絕權限，啟用替代方法');
+                    this.tryFallbackMethods();
+                    alert('將使用替代方法檢測設備方向');
                 }
             }, 1000);
         } else {
@@ -86,21 +89,68 @@ class MagicCalculator {
     async requestOrientationPermission() {
         if (typeof DeviceOrientationEvent.requestPermission === 'function') {
             try {
+                console.log('Requesting DeviceOrientationEvent permission...');
                 const permission = await DeviceOrientationEvent.requestPermission();
+                console.log('Permission result:', permission);
+
                 if (permission === 'granted') {
                     console.log('Orientation permission granted');
                     this.startOrientationListening();
                     return true;
                 } else {
-                    console.log('Orientation permission denied');
+                    console.log('Orientation permission denied, trying fallback methods');
+                    this.tryFallbackMethods();
                     return false;
                 }
             } catch (error) {
                 console.error('Error requesting orientation permission:', error);
+                console.log('Permission request failed, trying fallback methods');
+                this.tryFallbackMethods();
                 return false;
             }
         }
         return true;
+    }
+
+    tryFallbackMethods() {
+        console.log('Trying fallback orientation detection methods');
+
+        // Try legacy deviceorientation without permission
+        this.startOrientationListening();
+
+        // Add alternative method using window.orientation
+        window.addEventListener('orientationchange', () => {
+            console.log('Orientation change detected via orientationchange event');
+            setTimeout(() => {
+                this.handleOrientationFallback();
+            }, 100);
+        });
+
+        // Try motion detection as backup
+        if (window.DeviceMotionEvent) {
+            window.addEventListener('devicemotion', (e) => {
+                this.handleMotionEvent(e);
+            });
+        }
+    }
+
+    handleOrientationFallback() {
+        // Simple fallback - assume screen is down when orientation changes
+        if (this.firstSafetyActive && !this.secondSafetyActive) {
+            console.log('Fallback: Assuming screen flip for second safety');
+            this.activateSecondSafety();
+        }
+    }
+
+    handleMotionEvent(event) {
+        const { acceleration } = event;
+        if (acceleration && acceleration.z) {
+            // Rough detection of face-down position
+            if (acceleration.z < -8 && this.firstSafetyActive && !this.secondSafetyActive) {
+                console.log('Motion-based face-down detection');
+                this.activateSecondSafety();
+            }
+        }
     }
 
     startOrientationListening() {
