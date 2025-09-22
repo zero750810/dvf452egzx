@@ -272,8 +272,11 @@ class MagicCalculator {
     }
 
     clear() {
-        if (this.clearButton.textContent === '') {
-            // Delete last digit
+        if (this.currentInput === '0' && this.previousInput === '' && this.operator === '') {
+            // AC - Clear everything (already clear)
+            return;
+        } else if (this.currentInput !== '0') {
+            // C - Delete last digit
             if (this.currentInput.length > 1) {
                 this.currentInput = this.currentInput.slice(0, -1);
             } else {
@@ -295,11 +298,8 @@ class MagicCalculator {
     }
 
     updateClearButton() {
-        if (this.currentInput === '0' && this.previousInput === '' && this.operator === '') {
-            this.clearButton.textContent = '';
-        } else {
-            this.clearButton.textContent = '';
-        }
+        // 不顯示文字，只保留功能
+        this.clearButton.textContent = '';
     }
 
     toggleSign() {
