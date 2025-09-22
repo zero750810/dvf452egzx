@@ -23,6 +23,7 @@ class MagicCalculator {
         this.firstSafetyActive = false;
         this.secondSafetyActive = false;
         this.needsPermission = false;
+        this.debugElement = document.getElementById('debug-info');
 
         this.initEventListeners();
         this.initOrientationDetection();
@@ -41,16 +42,8 @@ class MagicCalculator {
     }
 
     initOrientationDetection() {
-        if (window.DeviceOrientationEvent) {
-            // Check if we need permission (iOS 13+)
-            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                console.log('iOS device detected - will request permission on page load');
-                this.needsPermission = true;
-            } else {
-                // Non-iOS or older iOS
-                this.startOrientationListening();
-            }
-        }
+        // Start listening immediately without permission check
+        this.startAllOrientationListening();
 
         window.addEventListener('orientationchange', () => {
             setTimeout(() => {
@@ -59,31 +52,31 @@ class MagicCalculator {
         });
     }
 
-    async checkInitialPermissions() {
-        if (this.needsPermission) {
-            console.log('檢測到iOS設備，需要權限');
+    startAllOrientationListening() {
+        console.log('Starting all orientation detection methods');
 
-            // Add delay to ensure page is fully loaded
-            setTimeout(async () => {
-                const userConfirm = confirm('此魔術計算機需要存取設備方向權限才能正常運作。是否現在授予權限？');
-
-                if (userConfirm) {
-                    const granted = await this.requestOrientationPermission();
-                    if (granted) {
-                        console.log('初始權限檢查完成 - 權限已授予');
-                    } else {
-                        console.log('嘗試使用替代方法進行方向檢測');
-                        alert('將使用替代方法檢測設備方向，魔術功能可能受限但仍可使用');
-                    }
-                } else {
-                    console.log('用戶拒絕權限，啟用替代方法');
-                    this.tryFallbackMethods();
-                    alert('將使用替代方法檢測設備方向');
-                }
-            }, 1000);
-        } else {
-            console.log('不需要額外權限或非iOS設備');
+        // DeviceOrientation
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener('deviceorientation', (e) => {
+                this.handleOrientationChange(e);
+            });
+            console.log('DeviceOrientation listener added');
         }
+
+        // DeviceMotion for Z-axis
+        if (window.DeviceMotionEvent) {
+            window.addEventListener('devicemotion', (e) => {
+                this.handleMotionChange(e);
+            });
+            console.log('DeviceMotion listener added');
+        }
+
+        this.updateDebugInfo('已啟動檢測');
+    }
+
+    async checkInitialPermissions() {
+        console.log('已直接啟動所有檢測方法，無需權限確認');
+        this.updateDebugInfo('初始化完成');
     }
 
     async requestOrientationPermission() {
@@ -212,25 +205,75 @@ class MagicCalculator {
 
     handleOrientationChange(event) {
         const { beta, gamma, alpha } = event;
-        console.log(`Orientation: beta=${beta}, gamma=${gamma}, alpha=${alpha}`);
+
+        this.updateDebugInfo('Orientation', { beta, gamma, alpha });
 
         // Check if screen is face down on table (beta around 180 degrees)
-        const isScreenDown = beta > 160 || beta < -160;
+        const isScreenDown = Math.abs(beta) > 150;
 
         if (isScreenDown && !this.isScreenDown) {
             this.isScreenDown = true;
-            console.log('Screen placed face down - locking all buttons');
+            console.log('Screen placed face down via orientation - locking all buttons');
             this.lockAllButtons();
 
             // If first safety is active, also activate second safety
             if (this.firstSafetyActive) {
-                console.log('Second safety activated');
+                console.log('Second safety activated via orientation');
                 this.activateSecondSafety();
             }
         } else if (!isScreenDown && this.isScreenDown) {
             this.isScreenDown = false;
-            console.log('Screen lifted up - unlocking buttons');
+            console.log('Screen lifted up via orientation - unlocking buttons');
             this.unlockAllButtons();
+        }
+    }
+
+    handleMotionChange(event) {
+        const { acceleration, accelerationIncludingGravity } = event;
+
+        let zAccel = null;
+        if (accelerationIncludingGravity) {
+            zAccel = accelerationIncludingGravity.z;
+        } else if (acceleration) {
+            zAccel = acceleration.z;
+        }
+
+        this.updateDebugInfo('Motion', { zAccel });
+
+        // Check if screen is face down (z acceleration around 10 or -10)
+        if (zAccel !== null) {
+            const isScreenDown = Math.abs(zAccel) > 8;
+
+            if (isScreenDown && !this.isScreenDown) {
+                this.isScreenDown = true;
+                console.log('Screen placed face down via motion - locking all buttons');
+                this.lockAllButtons();
+
+                // If first safety is active, also activate second safety
+                if (this.firstSafetyActive) {
+                    console.log('Second safety activated via motion');
+                    this.activateSecondSafety();
+                }
+            } else if (!isScreenDown && this.isScreenDown) {
+                this.isScreenDown = false;
+                console.log('Screen lifted up via motion - unlocking buttons');
+                this.unlockAllButtons();
+            }
+        }
+    }
+
+    updateDebugInfo(source, data = {}) {
+        if (this.debugElement) {
+            let status = this.firstSafetyActive ? '第一段已啟動' : '等待中';
+            if (this.secondSafetyActive) status = '兩段已啟動';
+
+            if (source === 'Orientation' && data.beta !== undefined) {
+                this.debugElement.textContent = `Beta: ${data.beta?.toFixed(1) || '--'} | Gamma: ${data.gamma?.toFixed(1) || '--'} | 狀態: ${status}`;
+            } else if (source === 'Motion' && data.zAccel !== undefined) {
+                this.debugElement.textContent = `Z軸: ${data.zAccel?.toFixed(1) || '--'} | 狀態: ${status}`;
+            } else {
+                this.debugElement.textContent = `檢測: ${source} | 狀態: ${status}`;
+            }
         }
     }
 
