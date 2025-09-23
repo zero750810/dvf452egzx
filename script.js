@@ -465,7 +465,7 @@ class MagicCalculator {
         highlight.className = 'calculator-hint-dot';
         highlight.style.cssText = `
             position: absolute;
-            top: 5px;
+            top: 10px;
             right: 5px;
             width: 8px;
             height: 8px;
