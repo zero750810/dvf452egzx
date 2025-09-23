@@ -19,6 +19,7 @@ class MagicCalculator {
 
         this.initEventListeners();
         this.initDisplayLongPress();
+        this.initCalculatorButton();
         this.updateDisplay();
     }
 
@@ -202,6 +203,9 @@ class MagicCalculator {
             case 'decimal':
                 this.addDecimal();
                 break;
+            case 'calculator':
+                // Calculator hint is handled by mousedown/touchstart events
+                break;
         }
     }
 
@@ -365,6 +369,134 @@ class MagicCalculator {
         } else {
             this.displayElement.style.fontSize = '80px';
         }
+    }
+
+    initCalculatorButton() {
+        const calculatorButton = document.querySelector('[data-action="calculator"]');
+
+        // Add mousedown/touchstart for press
+        calculatorButton.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            this.showCalculatorHint();
+        });
+
+        calculatorButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.showCalculatorHint();
+        });
+
+        // Add mouseup/touchend for release
+        calculatorButton.addEventListener('mouseup', (e) => {
+            e.preventDefault();
+            this.hideCalculatorHint();
+        });
+
+        calculatorButton.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.hideCalculatorHint();
+        });
+
+        calculatorButton.addEventListener('mouseleave', (e) => {
+            this.hideCalculatorHint();
+        });
+
+        calculatorButton.addEventListener('touchcancel', (e) => {
+            this.hideCalculatorHint();
+        });
+    }
+
+    showCalculatorHint() {
+        // Get current number (remove commas)
+        const currentNumber = parseFloat(this.currentInput.replace(/,/g, '')) || 0;
+
+        // Get current time in MMDDHHMM format
+        const now = new Date();
+        const month = now.getMonth() + 1;
+        const date = now.getDate();
+        const hour = now.getHours();
+        const minute = now.getMinutes() + 1;
+
+        const timeNumber = parseInt(`${month}${date.toString().padStart(2, '0')}${hour.toString().padStart(2, '0')}${minute.toString().padStart(2, '0')}`);
+
+        // Calculate difference
+        const difference = timeNumber - currentNumber;
+        const isAdd = difference >= 0;
+        const absoluteDifference = Math.abs(difference);
+
+        // Get the number of digits we need to highlight
+        const digitCount = absoluteDifference.toString().length;
+        const operation = isAdd ? 'add' : 'subtract';
+
+        console.log(`Hint: ${currentNumber} ${isAdd ? '+' : '-'} ${absoluteDifference} (${digitCount}位數) = ${timeNumber}`);
+
+        // Highlight the digit count and operation
+        this.highlightDigitCount(digitCount);
+        this.highlightOperation(operation);
+    }
+
+    hideCalculatorHint() {
+        this.clearAllHighlights();
+    }
+
+    highlightDigitCount(digitCount) {
+        // Clear previous highlights
+        this.clearDigitHighlights();
+
+        // Highlight the digit that represents the count
+        // For example: 1377118 is 7 digits, so highlight the "7" button
+        const digitButton = document.querySelector(`[data-number="${digitCount}"]`);
+        if (digitButton) {
+            this.addHighlight(digitButton);
+        }
+    }
+
+    highlightOperation(operation) {
+        // Clear previous operation highlights
+        this.clearOperationHighlights();
+
+        const operationButton = document.querySelector(`[data-action="${operation}"]`);
+        if (operationButton) {
+            this.addHighlight(operationButton);
+        }
+    }
+
+    addHighlight(button) {
+        const highlight = document.createElement('div');
+        highlight.className = 'calculator-hint-dot';
+        highlight.style.cssText = `
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 8px;
+            height: 8px;
+            background-color: #ff9500;
+            border-radius: 50%;
+            z-index: 100;
+            pointer-events: none;
+        `;
+        button.style.position = 'relative';
+        button.appendChild(highlight);
+    }
+
+    clearDigitHighlights() {
+        // Remove highlights from all number buttons
+        document.querySelectorAll('[data-number]').forEach(button => {
+            const highlights = button.querySelectorAll('.calculator-hint-dot');
+            highlights.forEach(dot => dot.remove());
+        });
+    }
+
+    clearOperationHighlights() {
+        // Remove highlights from operation buttons
+        document.querySelectorAll('[data-action="add"], [data-action="subtract"]').forEach(button => {
+            const highlights = button.querySelectorAll('.calculator-hint-dot');
+            highlights.forEach(dot => dot.remove());
+        });
+    }
+
+    clearAllHighlights() {
+        // Remove all hint dots
+        document.querySelectorAll('.calculator-hint-dot').forEach(dot => dot.remove());
     }
 
     updateOperatorButtons() {
