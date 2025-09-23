@@ -10,6 +10,7 @@ class MagicCalculator {
         this.operator = '';
         this.shouldResetDisplay = false;
         this.buttonsLocked = false;
+        this.clearMode = 'AC'; // Track clear button mode: 'AC' or 'C'
 
         // Long press variables
         this.isLongPressing = false;
@@ -167,6 +168,8 @@ class MagicCalculator {
         // Clear history when inputting numbers
         this.historyElement.textContent = '';
 
+        // Switch to C mode when user starts typing
+        this.clearMode = 'C';
         this.updateClearButton();
     }
 
@@ -268,32 +271,32 @@ class MagicCalculator {
         this.operator = '';
         this.shouldResetDisplay = true;
 
+        // Switch to AC mode after calculation
+        this.clearMode = 'AC';
+
         this.updateOperatorButtons();
     }
 
     clear() {
-        if (this.currentInput === '0' && this.previousInput === '' && this.operator === '') {
-            // AC - Clear everything (already clear)
-            return;
-        } else if (this.currentInput !== '0') {
-            // C - Delete last digit
-            if (this.currentInput.length > 1) {
-                this.currentInput = this.currentInput.slice(0, -1);
-            } else {
-                this.currentInput = '0';
-            }
-        } else {
+        if (this.clearMode === 'AC') {
             // AC - Clear everything
             this.currentInput = '0';
             this.previousInput = '';
             this.operator = '';
             this.shouldResetDisplay = false;
-
+            this.historyElement.textContent = '';
             this.updateOperatorButtons();
+            // Stay in AC mode after clearing everything
+        } else {
+            // C - Delete last digit
+            if (this.currentInput.length > 1) {
+                this.currentInput = this.currentInput.slice(0, -1);
+            } else {
+                this.currentInput = '0';
+                // Don't change mode when deleting to 0, keep C mode
+            }
         }
 
-        // Clear history on AC
-        this.historyElement.textContent = '';
         this.updateClearButton();
     }
 
