@@ -1,0 +1,13 @@
+# 這個檔案刻意只有幾行。
+# 所有檢查內容都在共用模組庫的 .github/workflows/shared-ci.yml，改一次所有專案同時生效。
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  gate:
+    name: 關卡
+    uses: zero750810/zerolin-modules/.github/workflows/shared-ci.yml@main
+    secrets: inherit
