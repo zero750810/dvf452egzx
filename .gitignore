@@ -4,11 +4,13 @@
 *.orig
 *.log
 *.sqlite
+*.db
 
 # Generated build output
 build/
 dist/
 out/
+node_modules/
 
 # Local environment configuration
 .env
