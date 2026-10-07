@@ -1,0 +1,16 @@
+# OS metadata and temporary files
+.DS_Store
+*.bak
+*.orig
+*.log
+*.sqlite
+
+# Generated build output
+build/
+dist/
+out/
+
+# Local environment configuration
+.env
+.env.*
+!.env.example
