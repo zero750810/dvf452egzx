@@ -1,3 +1,23 @@
+function getMagicTimeNumber(now) {
+    const month = now.getMonth() + 1;
+    const date = now.getDate();
+    const hour = now.getHours();
+    const minute = now.getMinutes() + 1;
+    return parseInt(`${month}${date.toString().padStart(2, '0')}${hour.toString().padStart(2, '0')}${minute.toString().padStart(2, '0')}`);
+}
+
+function bindPressHandlers(element, start, end) {
+    for (const name of ['mousedown', 'touchstart']) {
+        element.addEventListener(name, (e) => { e.preventDefault(); start(); });
+    }
+    for (const name of ['mouseup', 'touchend']) {
+        element.addEventListener(name, (e) => { e.preventDefault(); end(); });
+    }
+    for (const name of ['mouseleave', 'touchcancel']) {
+        element.addEventListener(name, () => end());
+    }
+}
+
 class MagicCalculator {
     constructor() {
         this.displayElement = document.getElementById('result');
@@ -36,35 +56,7 @@ class MagicCalculator {
     initDisplayLongPress() {
         console.log('Display long press detection initialized');
 
-        // Mouse events
-        this.displayArea.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            this.startLongPress();
-        });
-
-        this.displayArea.addEventListener('mouseup', (e) => {
-            e.preventDefault();
-            this.endLongPress();
-        });
-
-        this.displayArea.addEventListener('mouseleave', (e) => {
-            this.endLongPress();
-        });
-
-        // Touch events for mobile
-        this.displayArea.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.startLongPress();
-        });
-
-        this.displayArea.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            this.endLongPress();
-        });
-
-        this.displayArea.addEventListener('touchcancel', (e) => {
-            this.endLongPress();
-        });
+        bindPressHandlers(this.displayArea, () => this.startLongPress(), () => this.endLongPress());
     }
 
     startLongPress() {
@@ -117,13 +109,7 @@ class MagicCalculator {
         console.log('Magic calculation triggered!');
 
         // Calculate magic number from current date/time
-        const now = new Date();
-        const month = now.getMonth() + 1;
-        const date = now.getDate();
-        const hour = now.getHours();
-        const minute = now.getMinutes() + 1;
-
-        this.magicNumber = parseInt(`${month}${date.toString().padStart(2, '0')}${hour.toString().padStart(2, '0')}${minute.toString().padStart(2, '0')}`);
+        this.magicNumber = getMagicTimeNumber(new Date());
 
         // Get current calculation result (remove commas first)
         const currentResult = parseFloat(this.currentInput.replace(/,/g, ''));
@@ -374,35 +360,7 @@ class MagicCalculator {
     initCalculatorButton() {
         const calculatorButton = document.querySelector('[data-action="calculator"]');
 
-        // Add mousedown/touchstart for press
-        calculatorButton.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            this.showCalculatorHint();
-        });
-
-        calculatorButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.showCalculatorHint();
-        });
-
-        // Add mouseup/touchend for release
-        calculatorButton.addEventListener('mouseup', (e) => {
-            e.preventDefault();
-            this.hideCalculatorHint();
-        });
-
-        calculatorButton.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            this.hideCalculatorHint();
-        });
-
-        calculatorButton.addEventListener('mouseleave', (e) => {
-            this.hideCalculatorHint();
-        });
-
-        calculatorButton.addEventListener('touchcancel', (e) => {
-            this.hideCalculatorHint();
-        });
+        bindPressHandlers(calculatorButton, () => this.showCalculatorHint(), () => this.hideCalculatorHint());
     }
 
     showCalculatorHint() {
@@ -410,13 +368,7 @@ class MagicCalculator {
         const currentNumber = parseFloat(this.currentInput.replace(/,/g, '')) || 0;
 
         // Get current time in MMDDHHMM format
-        const now = new Date();
-        const month = now.getMonth() + 1;
-        const date = now.getDate();
-        const hour = now.getHours();
-        const minute = now.getMinutes() + 1;
-
-        const timeNumber = parseInt(`${month}${date.toString().padStart(2, '0')}${hour.toString().padStart(2, '0')}${minute.toString().padStart(2, '0')}`);
+        const timeNumber = getMagicTimeNumber(new Date());
 
         // Calculate difference
         const difference = timeNumber - currentNumber;
