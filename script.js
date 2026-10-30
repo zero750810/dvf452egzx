@@ -1,4 +1,6 @@
 const LONG_PRESS_MS = 3000;
+const HAPTIC_PULSES = 3;
+const HAPTIC_INTERVAL_MS = 200;
 
 function getMagicTimeNumber(now) {
     // Predict one minute ahead; Date handles hour/day/month rollover (23:59 -> 00:00 next day)
@@ -10,29 +12,15 @@ function getMagicTimeNumber(now) {
     return parseInt(`${month}${date.toString().padStart(2, '0')}${hour.toString().padStart(2, '0')}${minute.toString().padStart(2, '0')}`);
 }
 
-function haptic() {
-    // iPhone has no navigator.vibrate; since iOS 18, clicking a switch control gives haptic feedback.
-    // Only works inside a user-released event (touchend/mouseup), not from a timer.
-    const label = document.createElement('label');
-    const input = document.createElement('input');
-    input.type = 'checkbox';
-    input.setAttribute('switch', '');
-    label.appendChild(input);
-    label.style.display = 'none';
-    document.body.appendChild(label);
-    label.click();
-    label.remove();
-}
-
 function bindPressHandlers(element, start, end) {
     for (const name of ['mousedown', 'touchstart']) {
         element.addEventListener(name, (e) => { e.preventDefault(); start(); });
     }
     for (const name of ['mouseup', 'touchend']) {
-        element.addEventListener(name, (e) => { e.preventDefault(); end(true); });
+        element.addEventListener(name, (e) => { e.preventDefault(); end(); });
     }
     for (const name of ['mouseleave', 'touchcancel']) {
-        element.addEventListener(name, () => end(false));
+        element.addEventListener(name, () => end());
     }
 }
 
@@ -57,6 +45,7 @@ class MagicCalculator {
 
         this.initEventListeners();
         this.initDisplayLongPress();
+        this.initHapticSwitch();
         this.initCalculatorButton();
         this.updateDisplay();
     }
@@ -74,7 +63,29 @@ class MagicCalculator {
     initDisplayLongPress() {
         console.log('Display long press detection initialized');
 
-        bindPressHandlers(this.displayArea, () => this.startLongPress(), (released) => this.endLongPress(released));
+        // Pointer events without preventDefault: iOS must still fire the click that toggles the haptic switch
+        this.displayArea.addEventListener('pointerdown', () => this.startLongPress());
+        for (const name of ['pointerup', 'pointercancel', 'pointerleave']) {
+            this.displayArea.addEventListener(name, () => this.endLongPress());
+        }
+    }
+
+    // iPhone has no navigator.vibrate and (on iOS 27) ignores scripted switch clicks.
+    // The only haptic left is the finger itself releasing on a switch label, so the display
+    // is covered by a hidden switch label that is only enabled once the magic has fired.
+    initHapticSwitch() {
+        this.hapticLabel = document.querySelector('.haptic-switch');
+        this.hapticInput = this.hapticLabel.querySelector('input');
+        this.hapticPulses = 0;
+        this.hapticInput.addEventListener('change', () => {
+            this.hapticPulses++;
+            if (this.hapticPulses < HAPTIC_PULSES) {
+                // Extra pulses ride on the finger's click grant; they may be ignored, leaving one pulse
+                setTimeout(() => this.hapticLabel.click(), HAPTIC_INTERVAL_MS);
+            } else {
+                this.hapticInput.disabled = true;
+            }
+        });
     }
 
     startLongPress() {
@@ -83,6 +94,7 @@ class MagicCalculator {
         console.log('Long press started');
         this.isLongPressing = true;
         this.magicCalculated = false;
+        this.hapticInput.disabled = true;
 
         // Lock all buttons immediately
         this.lockAllButtons();
@@ -92,20 +104,18 @@ class MagicCalculator {
                 console.log('Long press reached - triggering magic calculation');
                 this.triggerMagicCalculation();
                 this.magicCalculated = true;
+                // Arm the switch: lifting the finger now vibrates to confirm
+                this.hapticPulses = 0;
+                this.hapticInput.disabled = false;
             }
         }, LONG_PRESS_MS);
     }
 
-    endLongPress(released) {
+    endLongPress() {
         if (!this.isLongPressing) return;
 
         console.log('Long press ended');
         this.isLongPressing = false;
-
-        // Confirm the magic calculation with a vibration when the finger lifts
-        if (released && this.magicCalculated) {
-            haptic();
-        }
 
         // Clear timer
         if (this.longPressTimer) {
