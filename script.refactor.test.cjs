@@ -3,6 +3,7 @@ const elems=new Map();let labelClicks=0;
 const elem=key=>{if(!elems.has(key)) elems.set(key,{textContent:'',style:{},dataset:{},events:{},classList:{contains:()=>false,add(){},remove(){}},addEventListener(name,cb){this.events[name]=cb},querySelectorAll:()=>[],querySelector:sub=>elem(key+' '+sub),click(){labelClicks++}});return elems.get(key)};
 let next=0;const timers=new Map();
 const RealDate=Date; class FixedDate extends RealDate { constructor(...a){super(...(a.length?a:[2026,0,2,23,59]))} }
+let clock=100000;FixedDate.now=()=>clock;
 const ctx=vm.createContext({document:{getElementById:elem,querySelector:elem,querySelectorAll:()=>[]},navigator:{},window:{},console:{log(){}},Date:FixedDate,setTimeout(cb,ms){timers.set(++next,{cb,ms});return next},clearTimeout(id){timers.delete(id)}});
 vm.runInContext(fs.readFileSync(process.env.SOURCE || __dirname+'/script.js','utf8')+'\nglobalThis.subject=calculator',ctx);
 const c=ctx.subject;
@@ -19,8 +20,14 @@ display.events.pointerdown();[...timers.values()][0].cb();assert.equal(c.magicCa
 sw.events.change();[...timers.values()].at(-1).cb();assert.equal(labelClicks,1);sw.events.change();[...timers.values()].at(-1).cb();assert.equal(labelClicks,2);sw.events.change();assert.equal(sw.disabled,true);
 display.events.pointerdown();assert.equal(sw.disabled,true); // a new press disarms any leftover switch
 display.events.pointerup();
+// backup trigger: three quick taps fire the magic on the third tap's pointerup (before its click)
+const tap=(hold,gap)=>{clock+=gap;display.events.pointerdown();clock+=hold;display.events.pointerup()};
+clock+=5000;c.currentInput='1,000';
+tap(100,0);tap(100,200);assert.equal(c.magicCalculated,false);tap(100,200);assert.equal(c.magicCalculated,true);assert.equal(sw.disabled,false);assert.equal(Number(c.currentInput.replace(/,/g,'')),1029000);
+clock+=5000;tap(100,0);tap(100,200);tap(100,800);assert.equal(c.magicCalculated,false); // too slow: no trigger
+clock+=5000;tap(100,0);tap(500,200);tap(100,200);assert.equal(c.magicCalculated,false); // a held press breaks the sequence
 let prevented=0;const event={preventDefault:()=>prevented++};
 let show=0,hide=0;c.showCalculatorHint=()=>show++;c.hideCalculatorHint=()=>hide++;
 const hint=elem('[data-action="calculator"]');for(const key of ['mousedown','touchstart','mouseup','touchend','mouseleave','touchcancel']) hint.events[key](event);
 assert.equal(show,2);assert.equal(hide,4);assert.equal(prevented,4);
-console.log('phone: minute rollover, hint, long press, switch arm/disarm and haptic pulses passed');
+console.log('phone: minute rollover, hint, long press, switch arm/disarm, haptic pulses and triple tap passed');
