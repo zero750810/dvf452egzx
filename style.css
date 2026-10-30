@@ -19,14 +19,23 @@ body {
 }
 
 .calculator {
-    background: url('back.webp') center/contain no-repeat;
-    max-width: 375px;
+    max-width: 500px;
     width: 100%;
     height: 100vh;
-    display: flex;
-    flex-direction: column;
     overflow: hidden;
     position: relative;
+}
+
+/* Same aspect ratio as back.webp (1170x2532), pinned to the bottom.
+   Everything inside uses % so the hit areas scale with the image on any screen;
+   on shorter screens only the empty black top gets cropped. */
+.pad {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    aspect-ratio: 1170 / 2532;
+    background: url('back.webp') center/100% 100% no-repeat;
 }
 
 .display {
@@ -46,7 +55,7 @@ body {
     top: 0;
     left: 0;
     right: 0;
-    height: 337px;
+    height: 38.9%; /* down to the top of the button grid */
 }
 
 #history {
@@ -70,12 +79,13 @@ body {
     white-space: nowrap;
 }
 
+/* 按鈕格位置量自 back.webp：每格 275px 見方，左上角 (36, 985)，共 4 欄 × 5 列 */
 .buttons {
     position: absolute;
-    bottom: 62px;
-    left: 0;
-    right: 0;
-    height: 450px; /* 調整整個按鈕區域的高度 */
+    top: 38.9%;
+    left: 3.08%;
+    width: 94.02%;
+    height: 54.23%;
     padding: 0;
     display: flex;
     flex-direction: column;
@@ -85,8 +95,8 @@ body {
     display: flex;
     flex: 1;
     margin: 0;
-    padding: 0 5px; /* 調整每行按鈕的左右邊距 */
-    align-items: center;
+    padding: 0;
+    align-items: stretch;
 }
 
 
@@ -105,8 +115,7 @@ body {
     -webkit-tap-highlight-color: transparent;
     background: transparent;
     color: white;
-    height: 81px; /* 調整按鈕高度 */
-    margin: 0 5px; /* 調整按鈕左右間距：第一個數字是上下，第二個是左右 */
+    margin: 0;
     position: relative;
 }
 

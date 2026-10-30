@@ -1,9 +1,27 @@
+const LONG_PRESS_MS = 3000;
+
 function getMagicTimeNumber(now) {
-    const month = now.getMonth() + 1;
-    const date = now.getDate();
-    const hour = now.getHours();
-    const minute = now.getMinutes() + 1;
+    // Predict one minute ahead; Date handles hour/day/month rollover (23:59 -> 00:00 next day)
+    const t = new Date(now.getTime() + 60 * 1000);
+    const month = t.getMonth() + 1;
+    const date = t.getDate();
+    const hour = t.getHours();
+    const minute = t.getMinutes();
     return parseInt(`${month}${date.toString().padStart(2, '0')}${hour.toString().padStart(2, '0')}${minute.toString().padStart(2, '0')}`);
+}
+
+function haptic() {
+    // iPhone has no navigator.vibrate; since iOS 18, clicking a switch control gives haptic feedback.
+    // Only works inside a user-released event (touchend/mouseup), not from a timer.
+    const label = document.createElement('label');
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.setAttribute('switch', '');
+    label.appendChild(input);
+    label.style.display = 'none';
+    document.body.appendChild(label);
+    label.click();
+    label.remove();
 }
 
 function bindPressHandlers(element, start, end) {
@@ -11,10 +29,10 @@ function bindPressHandlers(element, start, end) {
         element.addEventListener(name, (e) => { e.preventDefault(); start(); });
     }
     for (const name of ['mouseup', 'touchend']) {
-        element.addEventListener(name, (e) => { e.preventDefault(); end(); });
+        element.addEventListener(name, (e) => { e.preventDefault(); end(true); });
     }
     for (const name of ['mouseleave', 'touchcancel']) {
-        element.addEventListener(name, () => end());
+        element.addEventListener(name, () => end(false));
     }
 }
 
@@ -56,7 +74,7 @@ class MagicCalculator {
     initDisplayLongPress() {
         console.log('Display long press detection initialized');
 
-        bindPressHandlers(this.displayArea, () => this.startLongPress(), () => this.endLongPress());
+        bindPressHandlers(this.displayArea, () => this.startLongPress(), (released) => this.endLongPress(released));
     }
 
     startLongPress() {
@@ -69,21 +87,25 @@ class MagicCalculator {
         // Lock all buttons immediately
         this.lockAllButtons();
 
-        // Set timer for 5 seconds
         this.longPressTimer = setTimeout(() => {
             if (this.isLongPressing && !this.magicCalculated) {
-                console.log('5 seconds reached - triggering magic calculation');
+                console.log('Long press reached - triggering magic calculation');
                 this.triggerMagicCalculation();
                 this.magicCalculated = true;
             }
-        }, 5000);
+        }, LONG_PRESS_MS);
     }
 
-    endLongPress() {
+    endLongPress(released) {
         if (!this.isLongPressing) return;
 
         console.log('Long press ended');
         this.isLongPressing = false;
+
+        // Confirm the magic calculation with a vibration when the finger lifts
+        if (released && this.magicCalculated) {
+            haptic();
+        }
 
         // Clear timer
         if (this.longPressTimer) {

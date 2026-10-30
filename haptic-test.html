@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>震動實驗</title>
+<style>
+    body { margin: 0; padding: 16px; background: #000; color: #fff; font-family: -apple-system, sans-serif; }
+    .pad { margin: 12px 0; padding: 22px 16px; border-radius: 14px; background: #333; font-size: 18px; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; }
+    .pad small { display: block; color: #aaa; margin-top: 6px; font-size: 14px; }
+    #log { color: #ff9500; font-size: 14px; white-space: pre-line; }
+</style>
+</head>
+<body>
+<p>每一塊照說明操作，記下哪幾塊有「噠」一下（需要 iOS 18 以上，靜音開關不影響）。</p>
+<div class="pad" id="d">D. 點一下<small>對照組：放開時震，這塊應該要震</small></div>
+<div class="pad" id="a">A. 按住不放<small>手指一按下就震</small></div>
+<div class="pad" id="b">B. 按住 3 秒不放<small>3 秒到時震（計時器）</small></div>
+<div class="pad" id="c">C. 按住 3 秒不放<small>按下後畫面會卡住 3 秒，3 秒到時震</small></div>
+<div id="log"></div>
+<script>
+function haptic() {
+    const label = document.createElement('label');
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.setAttribute('switch', '');
+    label.appendChild(input);
+    label.style.display = 'none';
+    document.body.appendChild(label);
+    label.click();
+    label.remove();
+}
+const log = msg => { document.getElementById('log').textContent += msg + '\n'; };
+const on = (id, name, fn) => document.getElementById(id).addEventListener(name, e => { e.preventDefault(); fn(); });
+
+on('d', 'touchend', () => { haptic(); log('D 已嘗試震動'); });
+on('a', 'touchstart', () => { haptic(); log('A 已嘗試震動'); });
+on('b', 'touchstart', () => setTimeout(() => { haptic(); log('B 已嘗試震動'); }, 3000));
+on('c', 'touchstart', () => {
+    const until = Date.now() + 3000;
+    while (Date.now() < until) { /* hold the touch event open */ }
+    haptic();
+    log('C 已嘗試震動');
+});
+</script>
+</body>
+</html>
