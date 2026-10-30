@@ -9,6 +9,10 @@
     .pad { margin: 12px 0; padding: 22px 16px; border-radius: 14px; background: #333; font-size: 18px; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; }
     .pad small { display: block; color: #aaa; margin-top: 6px; font-size: 14px; }
     #log { color: #ff9500; font-size: 14px; white-space: pre-line; }
+    .big { position: relative; padding: 40px 16px; }
+    .cover { position: absolute; inset: 0; }
+    .cover input { opacity: 0.01; width: 1px; height: 1px; margin: 0; }
+    .whole { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0.01; }
 </style>
 </head>
 <body>
@@ -19,6 +23,8 @@
 <div class="pad" id="c">C. 按住 3 秒不放<small>按下後畫面會卡住 3 秒，3 秒到時震</small></div>
 <div class="pad">E. 直接點這個開關 <input type="checkbox" switch><small>iPhone 原生開關，這個不震就代表網頁完全震不了</small></div>
 <div class="pad" id="f">F. 點一下<small>同 D，但隱藏開關改成透明而不是完全隱藏</small></div>
+<div class="pad big">G. 點這塊<small>整塊是看不見的開關標籤</small><label class="cover"><input type="checkbox" switch data-name="G"></label></div>
+<div class="pad big">H. 點這塊<small>整塊就是一個看不見的開關</small><input class="whole" type="checkbox" switch data-name="H"></div>
 <div id="log"></div>
 <script>
 function haptic() {
@@ -48,6 +54,7 @@ on('f', 'touchend', () => {
     setTimeout(() => label.remove(), 500);
     log('F 已嘗試震動');
 });
+document.querySelectorAll('[data-name]').forEach(input => input.addEventListener('change', () => log(input.dataset.name + ' 開關切換了')));
 on('a', 'touchstart', () => { haptic(); log('A 已嘗試震動'); });
 on('b', 'touchstart', () => setTimeout(() => { haptic(); log('B 已嘗試震動'); }, 3000));
 on('c', 'touchstart', () => {
