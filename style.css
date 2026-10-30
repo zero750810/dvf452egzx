@@ -56,20 +56,6 @@ body {
     left: 0;
     right: 0;
     height: 38.9%; /* down to the top of the button grid */
-    touch-action: none; /* no scroll/zoom, so a long press is never cancelled */
-}
-
-/* Invisible switch label over the display; releasing a finger on it gives iPhone haptic feedback */
-.haptic-switch {
-    position: absolute;
-    inset: 0;
-}
-
-.haptic-switch input {
-    opacity: 0.01;
-    width: 1px;
-    height: 1px;
-    margin: 0;
 }
 
 #history {

@@ -1,10 +1,4 @@
 const LONG_PRESS_MS = 3000;
-const HAPTIC_PULSES = 3;
-const HAPTIC_INTERVAL_MS = 200;
-// Backup trigger: quick taps on the display
-const TAP_COUNT = 3;
-const TAP_MAX_MS = 300;  // a press longer than this is not a tap
-const TAP_GAP_MS = 600;  // max time between the end of one tap and the end of the next
 
 function getMagicTimeNumber(now) {
     // Predict one minute ahead; Date handles hour/day/month rollover (23:59 -> 00:00 next day)
@@ -42,17 +36,13 @@ class MagicCalculator {
         this.buttonsLocked = false;
         this.clearMode = 'AC'; // Track clear button mode: 'AC' or 'C'
 
-        // Long press / triple tap variables
+        // Long press variables
         this.isLongPressing = false;
         this.longPressTimer = null;
         this.magicCalculated = false;
-        this.pressStartedAt = 0;
-        this.tapCount = 0;
-        this.lastTapAt = 0;
 
         this.initEventListeners();
         this.initDisplayLongPress();
-        this.initHapticSwitch();
         this.initCalculatorButton();
         this.updateDisplay();
     }
@@ -70,49 +60,7 @@ class MagicCalculator {
     initDisplayLongPress() {
         console.log('Display long press detection initialized');
 
-        // Pointer events without preventDefault: iOS must still fire the click that toggles the haptic switch
-        this.displayArea.addEventListener('pointerdown', () => this.startLongPress());
-        this.displayArea.addEventListener('pointerup', () => {
-            this.endLongPress();
-            this.registerTap();
-        });
-        for (const name of ['pointercancel', 'pointerleave']) {
-            this.displayArea.addEventListener(name, () => this.endLongPress());
-        }
-    }
-
-    // Fires on pointerup, before iOS sends the click, so the last tap's click hits the armed switch and vibrates
-    registerTap() {
-        const now = Date.now();
-        if (this.magicCalculated || now - this.pressStartedAt > TAP_MAX_MS) {
-            this.tapCount = 0;
-            return;
-        }
-        this.tapCount = now - this.lastTapAt <= TAP_GAP_MS ? this.tapCount + 1 : 1;
-        this.lastTapAt = now;
-        if (this.tapCount >= TAP_COUNT) {
-            console.log('Triple tap - triggering magic calculation');
-            this.tapCount = 0;
-            this.fireMagic();
-        }
-    }
-
-    // iPhone has no navigator.vibrate and (on iOS 27) ignores scripted switch clicks.
-    // The only haptic left is the finger itself releasing on a switch label, so the display
-    // is covered by a hidden switch label that is only enabled once the magic has fired.
-    initHapticSwitch() {
-        this.hapticLabel = document.querySelector('.haptic-switch');
-        this.hapticInput = this.hapticLabel.querySelector('input');
-        this.hapticPulses = 0;
-        this.hapticInput.addEventListener('change', () => {
-            this.hapticPulses++;
-            if (this.hapticPulses < HAPTIC_PULSES) {
-                // Extra pulses ride on the finger's click grant; they may be ignored, leaving one pulse
-                setTimeout(() => this.hapticLabel.click(), HAPTIC_INTERVAL_MS);
-            } else {
-                this.hapticInput.disabled = true;
-            }
-        });
+        bindPressHandlers(this.displayArea, () => this.startLongPress(), () => this.endLongPress());
     }
 
     startLongPress() {
@@ -120,9 +68,7 @@ class MagicCalculator {
 
         console.log('Long press started');
         this.isLongPressing = true;
-        this.pressStartedAt = Date.now();
         this.magicCalculated = false;
-        this.hapticInput.disabled = true;
 
         // Lock all buttons immediately
         this.lockAllButtons();
@@ -130,17 +76,10 @@ class MagicCalculator {
         this.longPressTimer = setTimeout(() => {
             if (this.isLongPressing && !this.magicCalculated) {
                 console.log('Long press reached - triggering magic calculation');
-                this.fireMagic();
+                this.triggerMagicCalculation();
+                this.magicCalculated = true;
             }
         }, LONG_PRESS_MS);
-    }
-
-    fireMagic() {
-        this.triggerMagicCalculation();
-        this.magicCalculated = true;
-        // Arm the switch: lifting the finger now vibrates to confirm
-        this.hapticPulses = 0;
-        this.hapticInput.disabled = false;
     }
 
     endLongPress() {
