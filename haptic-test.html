@@ -17,6 +17,8 @@
 <div class="pad" id="a">A. 按住不放<small>手指一按下就震</small></div>
 <div class="pad" id="b">B. 按住 3 秒不放<small>3 秒到時震（計時器）</small></div>
 <div class="pad" id="c">C. 按住 3 秒不放<small>按下後畫面會卡住 3 秒，3 秒到時震</small></div>
+<div class="pad">E. 直接點這個開關 <input type="checkbox" switch><small>iPhone 原生開關，這個不震就代表網頁完全震不了</small></div>
+<div class="pad" id="f">F. 點一下<small>同 D，但隱藏開關改成透明而不是完全隱藏</small></div>
 <div id="log"></div>
 <script>
 function haptic() {
@@ -34,6 +36,18 @@ const log = msg => { document.getElementById('log').textContent += msg + '\n'; }
 const on = (id, name, fn) => document.getElementById(id).addEventListener(name, e => { e.preventDefault(); fn(); });
 
 on('d', 'touchend', () => { haptic(); log('D 已嘗試震動'); });
+on('f', 'touchend', () => {
+    const label = document.createElement('label');
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.setAttribute('switch', '');
+    label.appendChild(input);
+    label.style.cssText = 'position:fixed;left:0;top:0;opacity:0.01;';
+    document.body.appendChild(label);
+    label.click();
+    setTimeout(() => label.remove(), 500);
+    log('F 已嘗試震動');
+});
 on('a', 'touchstart', () => { haptic(); log('A 已嘗試震動'); });
 on('b', 'touchstart', () => setTimeout(() => { haptic(); log('B 已嘗試震動'); }, 3000));
 on('c', 'touchstart', () => {
